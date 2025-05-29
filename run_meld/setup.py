@@ -13,8 +13,8 @@ from meld import remd
 from meld.system import param_sampling
 from openmm import unit as u
 
-N_REPLICAS = 30
-N_STEPS = 20000
+N_REPLICAS = 2
+N_STEPS = 2000
 BLOCK_SIZE = 50
 
 
@@ -67,6 +67,7 @@ def create_hydrophobes(s,group_1=np.array([]),group_2=np.array([]),CO=True):
     print(n_res)
     group_1 = group_1 if group_1.size else np.array(list(range(n_res)))+1
     group_2 = group_2 if group_2.size else np.array(list(range(n_res)))+1
+#    scaler = scaler if scaler else s.restraints.create_scaler('nonlinear', alpha_min=0.4, alpha_max=1.0, factor=4.0)
 
     #Get a list of names and residue numbers, if just use names might skip some residues that are two
  #times in a row
@@ -76,6 +77,9 @@ def create_hydrophobes(s,group_1=np.array([]),group_2=np.array([]),CO=True):
     print(sequence)
     sequence = dict(sequence)
 
+    #print sequence
+    #print hydrophobes_res
+    #Get list of groups with only residues that are hydrophobs
     print(group_1)
     print(group_2)
     group_1 = [ res for res in group_1 if (sequence[res-1] in hydrophobes_res) ]
@@ -105,6 +109,11 @@ def create_hydrophobes(s,group_1=np.array([]),group_2=np.array([]),CO=True):
             local_contact = []
             for a_i in atoms_i:
                 for a_j in atoms_j:
+                    #if CO:
+                        #print i,j,a_i,a_j
+                     #   tmp_scaler = scaler(abs(i-j), 'hydrophobic')
+                    #else:
+                     #   tmp_scaler = scaler
                     hy_rest.write('{} {} {} {}\n'.format(i,a_i, j, a_j))
             hy_rest.write('\n')
 
@@ -121,9 +130,20 @@ def generate_strand_pairs(s,sse,subset=np.array([]),CO=True):
             for res_i in range(start_i,end_i+1):
                 for res_j in range(start_j,end_j+1):
                     if res_i in subset or res_j in subset:
+                        #print(res_i,res_j)
                         f.write('{} {} {} {}\n'.format(res_i, 'N', res_j, 'O'))
+                        #f.write('\n')
                         f.write('{} {} {} {}\n'.format(res_i, 'O', res_j, 'N'))
                         f.write('\n')
+                        #g = []
+                        #make_pairNO(g,s,res_i,res_j,scaler,CO)
+                        #strand_pair.append(s.restraints.create_restraint_group(g,1))
+                        #g = []
+                        #make_pairON(g,s,res_i,res_j,scaler,CO)
+                        #strand_pair.append(s.restraints.create_restraint_group(g,1))
+    #all_rest = len(strand_pair)
+    #active = int(active * active_per_cent)
+    #print(("strand_pairs:", all_rest,active))
 
 def get_dist_restraints_hydrophobe(filename, s, scaler, ramp, seq):
     dists = []
@@ -199,6 +219,7 @@ def setup_system():
 
     builder = meld.AmberSystemBuilder(build_options)
     s = builder.build_system([p]).finalize()
+    #s.temperature_scaler = meld.ConstantTemperatureScaler(300.0 * u.kelvin)
     s.temperature_scaler = system.temperature.GeometricTemperatureScaler(0, 0.3, 300.*u.kelvin, 550.*u.kelvin)
 
 ##########################
@@ -245,15 +266,24 @@ def setup_system():
     create_hydrophobes(s,group_1=subset1,group_2=subset1,CO=False)
     
     
-    ##hydrophobic contacts
+    #creates parameter for sampling for hydrophobic contacts
     dists = get_dist_restraints_hydrophobe('hydrophobe.dat', s, scaler, ramp, seq)
+    #prior_c13 = param_sampling.ScaledExponentialDiscretePrior(u0=2.0, temperature_scaler=s.temperature_scaler, scaler=scaler)
+    #sampler_c13 = param_sampling.DiscreteSampler(int(1), int(1.00 * len(dists)), 1)
+    #param_c13 = s.param_sampler.add_discrete_parameter("param_HP", int(1.2 * no_hy_res), prior_c13, sampler_c13)
+    #s.restraints.add_selectively_active_collection(dists, param_c13)
     s.restraints.add_selectively_active_collection(dists, int(1.2 * no_hy_res))   
 
     ##strand pairing
     sse,active = make_ss_groups(subset=subset1)
     generate_strand_pairs(s,sse,subset=subset1,CO=False)
     #
+    ##creates parameter sampling for strand pairing
     dists = get_dist_restraints_strand_pair('strand_pair.dat', s, scaler, ramp, seq)
+    #prior_n15 = param_sampling.ScaledExponentialDiscretePrior(u0=2.0, temperature_scaler=s.temperature_scaler, scaler=scaler)
+    #sampler_n15 = param_sampling.DiscreteSampler(int(1), int(1.00 * len(dists)), 1)
+    #param_n15 = s.param_sampler.add_discrete_parameter("param_SP", int(0.45*active), prior_n15, sampler_n15)
+    #s.restraints.add_selectively_active_collection(dists, param_n15)
     s.restraints.add_selectively_active_collection(dists, int(0.45*active))    
 
     # setup mcmc at startup
