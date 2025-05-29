@@ -11,7 +11,9 @@ from meld import comm, vault
 from meld import parse
 from meld import remd
 from meld.system import param_sampling
-from openmm import unit as u
+from openmm import unit
+from openmm.app import PDBFile
+from meld.system.builders.grappa import GrappaOptions, GrappaSystemBuilder
 
 N_REPLICAS = 2
 N_STEPS = 2000
@@ -204,23 +206,30 @@ def setup_system():
     n_res = len(sequence.split())
 
     # build the system
-    p = meld.AmberSubSystemFromPdbFile('protein_min.pdb')
-    build_options = meld.AmberOptions(
-      forcefield="ff14sbside",
-      implicit_solvent_model = 'gbNeck2',
-      use_big_timestep = True,
-      cutoff = 1.8*u.nanometers,
-      remove_com = False,
-      #use_amap = False,
-      enable_amap = False,
-      amap_beta_bias = 1.0,
+    pdb_file = PDBFile('protein_min.pdb')
+    topology = pdb_file.topology
+    positions = pdb_file.positions
+
+    grappa_options = GrappaOptions(
+        grappa_model_tag='latest',
+        base_forcefield_files=['amber/ff14SB.xml'],
+        default_temperature=300.0 * unit.kelvin,
+        cutoff=1.8 * unit.nanometers,
+        use_big_timestep=True
     )
 
+    grappa_builder = GrappaSystemBuilder(grappa_options)
+    system_spec = grappa_builder.build_system(topology, positions)
 
-    builder = meld.AmberSystemBuilder(build_options)
-    s = builder.build_system([p]).finalize()
-    #s.temperature_scaler = meld.ConstantTemperatureScaler(300.0 * u.kelvin)
-    s.temperature_scaler = system.temperature.GeometricTemperatureScaler(0, 0.3, 300.*u.kelvin, 550.*u.kelvin)
+    # Initialize a basic System object first
+    s = system.System(
+        system_spec=system_spec,
+        communicator=None, # Will be set later by store.save_communicator
+        restraints=None, # Will be populated by add_selectively_active_collection etc.
+        director=None, # Not explicitly used in the original script for system creation
+        options=None # RunOptions will be set later by store.save_run_options
+    )
+    s.temperature_scaler = system.temperature.GeometricTemperatureScaler(0, 0.3, 300.*unit.kelvin, 550.*unit.kelvin)
 
 ##########################
 
@@ -258,6 +267,10 @@ def setup_system():
     #
     # Setup Scaler
     #
+    # Initialize restraints object for the system if it's not already initialized
+    if s.restraints is None:
+        s.restraints = system.RestraintManager(s)
+
     scaler = s.restraints.create_scaler('nonlinear', alpha_min=0.4, alpha_max=1.0, factor=4.0)
     subset1= np.array(list(range(n_res))) + 1
     #
@@ -282,6 +295,11 @@ def setup_system():
     dists = get_dist_restraints_strand_pair('strand_pair.dat', s, scaler, ramp, seq)
     #prior_n15 = param_sampling.ScaledExponentialDiscretePrior(u0=2.0, temperature_scaler=s.temperature_scaler, scaler=scaler)
     #sampler_n15 = param_sampling.DiscreteSampler(int(1), int(1.00 * len(dists)), 1)
+
+    # Initialize param_sampler object for the system if it's not already initialized
+    if not hasattr(s, 'param_sampler') or s.param_sampler is None:
+        s.param_sampler = param_sampling.ParameterSampler()
+
     #param_n15 = s.param_sampler.add_discrete_parameter("param_SP", int(0.45*active), prior_n15, sampler_n15)
     #s.restraints.add_selectively_active_collection(dists, param_n15)
     s.restraints.add_selectively_active_collection(dists, int(0.45*active))    
