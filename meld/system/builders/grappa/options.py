@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 
 @partial(dataclass, frozen=True)
 class GrappaOptions:
-    grappa_model_tag: str = "latest"
-    base_forcefield_files: List[str] = field(default_factory=lambda: ["amber99sbildn.xml", "tip3p.xml"])
+    #grappa_model_tag: str = "latest"
+    grappa_model_tag: str = "grappa-1.4.0"
+    base_forcefield_files: List[str] = field(default_factory=lambda: ['amber14-all.xml', 'implicit/gbn2.xml'])
     default_temperature: u.Quantity = field(default_factory=lambda: 300.0 * u.kelvin)
-    cutoff: Optional[float] = None  # in nanometers
+    cutoff: Optional[u.Quantity] = None  # in nanometers
     use_big_timestep: bool = False  # 3fs
     use_bigger_timestep: bool = False  # 4fs
     remove_com: bool = True
@@ -35,17 +36,25 @@ class GrappaOptions:
                 "default_temperature",
                 self.default_temperature.value_in_unit(u.kelvin),
             )
+        #============== newly added lines ======================================
+        if self.cutoff is not None:
+            # Convert to float in nanometers if it's a Quantity
+            if hasattr(self.cutoff, float):
+                object.__setattr__(self, "cutoff", self.cutoff * u.nanometer)
+            elif not isinstance(self.cutoff, u.Quantity):
+                raise ValueError("Cutoff must be a float (nanometers) or a Quantity with length units")
+        #===============================================================================
         if self.default_temperature < 0:
-            raise ValueError("default_temperature must be >= 0")
+            raise ValueError("Default_temperature must be >= 0")
 
         if self.use_big_timestep and self.use_bigger_timestep:
             raise ValueError("Cannot set both use_big_timestep and use_bigger_timestep to True.")
 
         if not self.grappa_model_tag:
-            raise ValueError("grappa_model_tag cannot be empty.")
+            raise ValueError("Grappa_model_tag cannot be empty.")
 
         if not self.base_forcefield_files:
-            raise ValueError("base_forcefield_files cannot be empty.")
+            raise ValueError("Base_forcefield_files cannot be empty.")
         for ff_file in self.base_forcefield_files:
             if not ff_file.endswith(".xml"):
                 raise ValueError(f"Force field file {ff_file} should be an XML file.")
