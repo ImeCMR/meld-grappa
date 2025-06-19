@@ -345,7 +345,7 @@ def setup_system():
     ss_rests = parse.get_secondary_structure_restraints(filename='ss.dat', system=s, scaler=ss_scaler,
             ramp=ramp, torsion_force_constant=0.01*unit.kilojoule_per_mole/unit.degree **2, distance_force_constant=2.5*unit.kilojoule_per_mole/unit.nanometer **2, quadratic_cut=2.0*unit.nanometer)
     n_ss_keep = int(len(ss_rests) * 0.85)
-    #s.restraints.add_selectively_active_collection(ss_rests, n_ss_keep) #******************
+    s.restraints.add_selectively_active_collection(ss_rests, n_ss_keep) #******************
 
     conf_scaler = s.restraints.create_scaler('constant')
     confinement_rests = []
@@ -377,7 +377,7 @@ def setup_system():
     #param_c13 = s.param_sampler.add_discrete_parameter("param_HP", int(1.2 * no_hy_res), prior_c13, sampler_c13)
     #s.restraints.add_selectively_active_collection(dists, param_c13)
 
-    #s.restraints.add_selectively_active_collection(dists, int(1.2 * no_hy_res))  #*****************************  
+    s.restraints.add_selectively_active_collection(dists, int(1.2 * no_hy_res))  #*****************************  
 
     ##strand pairing
     sse,active = make_ss_groups(subset=subset1)
@@ -395,7 +395,7 @@ def setup_system():
     #param_n15 = s.param_sampler.add_discrete_parameter("param_SP", int(0.45*active), prior_n15, sampler_n15)
     #s.restraints.add_selectively_active_collection(dists, param_n15)
 
-    #s.restraints.add_selectively_active_collection(dists, int(0.45*active))    #******************* 
+    s.restraints.add_selectively_active_collection(dists, int(0.45*active))    #******************* 
 
     # setup mcmc at startup
     movers = []
