@@ -298,12 +298,13 @@ def setup_system():
     print("Number of positions in system:", len(positions)) #====================== debu ===========
 
     grappa_options = GrappaOptions(
+        solvation_type="implicit",
         grappa_model_tag='latest',
         base_forcefield_files=['amber14-all.xml', 'implicit/gbn2.xml'],
         default_temperature=300.0 * unit.kelvin,
         #cutoff=1.8 * unit.nanometers,
         cutoff=None,
-        use_big_timestep=True
+        use_big_timestep=False
     )
 
     grappa_builder = GrappaSystemBuilder(grappa_options)

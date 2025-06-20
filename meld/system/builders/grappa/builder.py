@@ -169,7 +169,7 @@ class GrappaSystemBuilder:
 
         logger.info("SystemSpec creation complete.")
         return SystemSpec(
-            solvation="unknown", # Grappa doesn't explicitly define this like amber/martini
+            solvation=self.options.solvation_type,
             system=system,
             topology=topology,
             integrator=integrator,

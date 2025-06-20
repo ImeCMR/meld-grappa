@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 @partial(dataclass, frozen=True)
 class GrappaOptions:
+    solvation_type: str  # Add this line FIRST
     #grappa_model_tag: str = "latest"
     grappa_model_tag: str = "grappa-1.4.0"
     base_forcefield_files: List[str] = field(default_factory=lambda: ['amber14-all.xml', 'implicit/gbn2.xml'])
@@ -44,6 +45,9 @@ class GrappaOptions:
             elif not isinstance(self.cutoff, u.Quantity):
                 raise ValueError("Cutoff must be a float (nanometers) or a Quantity with length units")
         #===============================================================================
+        if self.solvation_type not in ["implicit", "explicit"]:
+            raise ValueError(f"solvation_type must be 'implicit' or 'explicit', got {self.solvation_type}")
+
         if self.default_temperature < 0:
             raise ValueError("Default_temperature must be >= 0")
 
@@ -61,6 +65,7 @@ class GrappaOptions:
 
         logger.info(f"GrappaOptions initialized with model tag: {self.grappa_model_tag}")
         logger.info(f"Base force field files: {self.base_forcefield_files}")
+        logger.info(f"Solvation type: {self.solvation_type}")
         logger.info(f"Default temperature: {self.default_temperature} K")
         logger.info(f"Cutoff: {self.cutoff} nm")
         logger.info(f"Use big timestep (3fs): {self.use_big_timestep}")
