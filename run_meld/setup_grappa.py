@@ -299,12 +299,12 @@ def setup_system():
 
     grappa_options = GrappaOptions(
         solvation_type="implicit",
-        grappa_model_tag='latest',
+        grappa_model_tag="grappa-1.4.0", # Explicitly set a valid default
         base_forcefield_files=['amber14-all.xml', 'implicit/gbn2.xml'],
         default_temperature=300.0 * unit.kelvin,
         #cutoff=1.8 * unit.nanometers,
         cutoff=None,
-        use_big_timestep=False
+        use_big_timestep=False # Critical: ensure this is False
     )
 
     grappa_builder = GrappaSystemBuilder(grappa_options)

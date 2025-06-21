@@ -19,9 +19,8 @@ logger = logging.getLogger(__name__)
 
 @partial(dataclass, frozen=True)
 class GrappaOptions:
-    solvation_type: str  # Add this line FIRST
-    #grappa_model_tag: str = "latest"
-    grappa_model_tag: str = "grappa-1.4.0"
+    solvation_type: str
+    grappa_model_tag: str
     base_forcefield_files: List[str] = field(default_factory=lambda: ['amber14-all.xml', 'implicit/gbn2.xml'])
     default_temperature: u.Quantity = field(default_factory=lambda: 300.0 * u.kelvin)
     cutoff: Optional[u.Quantity] = None  # in nanometers
@@ -48,16 +47,25 @@ class GrappaOptions:
         if self.solvation_type not in ["implicit", "explicit"]:
             raise ValueError(f"solvation_type must be 'implicit' or 'explicit', got {self.solvation_type}")
 
+        ALLOWED_GRAPPA_TAGS = {
+            "grappa-1.3.0": "Covers peptides, small molecules, rna and peptide radicals",
+            "grappa-1.4.0": "Covers peptides, small molecules, rna",
+            "grappa-1.4.1-radical": "Covers peptides, small molecules, rna and peptide radicals",
+            "grappa-1.4.1-light": "Lightweight version with significantly less parameters for testing. Covers peptides, small molecules, rna and peptide radicals"
+        }
+        if self.grappa_model_tag not in ALLOWED_GRAPPA_TAGS:
+            error_msg = f"Invalid grappa_model_tag: '{self.grappa_model_tag}'. Allowed tags are:\n"
+            for tag, desc in ALLOWED_GRAPPA_TAGS.items():
+                error_msg += f"  {tag}: {desc}\n"
+            raise ValueError(error_msg)
+
         if self.default_temperature < 0:
             raise ValueError("Default_temperature must be >= 0")
 
         if self.use_big_timestep and self.use_bigger_timestep:
             raise ValueError("Cannot set both use_big_timestep and use_bigger_timestep to True.")
 
-        if not self.grappa_model_tag:
-            raise ValueError("Grappa_model_tag cannot be empty.")
-
-        if not self.base_forcefield_files:
+        if not self.base_forcefield_files: # This check for base_forcefield_files can remain as is
             raise ValueError("Base_forcefield_files cannot be empty.")
         for ff_file in self.base_forcefield_files:
             if not ff_file.endswith(".xml"):
