@@ -11,10 +11,10 @@ dependencies:
 - gxx_linux-64 @GCC_VERSION@
 - make
 - ccache
-- numpy=1.26
+- numpy
 - mypy
 - breathe
-- doxygen 1.8.14
+- doxygen
 - eigen
 - sphinx
 - sphinx_rtd_theme
@@ -31,7 +31,6 @@ dependencies:
 - cython
 - swig
 - fftw
-#- numpy=1.26
 - numpy
 - scipy
 - hdf4
@@ -51,5 +50,5 @@ dependencies:
 - pytest
 
 - pip:
-  - torch==2.0.0
+  - torch>=2.1.0
   - grappa-ff

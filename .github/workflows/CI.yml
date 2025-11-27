@@ -133,11 +133,15 @@ jobs:
           test -f ${CONDA_PREFIX}/lib/plugins/libMeldPluginCUDA.so
 
       - name: "Install GaMD dependencies"
+        # NOTE: Skip gamd-openmm on Python 3.11 due to CI installation failures.
+        # This should be revisited if/when gamd-openmm supports Python 3.11.
+        if: matrix.python-version == '3.10'
         shell: bash -l {0}
         run: |
           conda install -y -c conda-forge git
 
       - name: "Clone & Install GaMD-Openmm"
+        if: matrix.python-version == '3.10'
         shell: bash -l {0}
         run: |
           git clone https://github.com/MiaoLab20/gamd-openmm.git
@@ -145,6 +149,7 @@ jobs:
           pip install .
 
       - name: "Verify GaMD installation"
+        if: matrix.python-version == '3.10'
         shell: bash -l {0}
         run: |
           python -c "from gamd import *; print('GaMD import successful')"
@@ -155,7 +160,9 @@ jobs:
         if: ${{ !contains(matrix.CMAKE_FLAGS, 'OPENMM_BUILD_PYTHON_WRAPPERS=OFF') && (steps.testcore.outcome == 'failure' || steps.testcore.outcome == 'success') }}
         run: |
           set -x
-          python -c "from gamd import *; print('GaMD verification passed')"
+          if [ "${{ matrix.python-version }}" = "3.10" ]; then
+            python -c "from gamd import *; print('GaMD verification passed')"
+          fi
           python -m unittest discover meld.test
           mypy --version
           mypy meld
@@ -175,7 +182,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         name: "Prepare base dependencies"
         with:
-          python-version: "3.8"
+          python-version: "3.10"
           activate-environment: build
           environment-file: devtools/ci/gh-actions/conda-envs/docs.yml
           auto-activate-base: false
