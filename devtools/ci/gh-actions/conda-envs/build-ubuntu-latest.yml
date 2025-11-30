@@ -52,4 +52,5 @@ dependencies:
 
 - pip:
   - torch==2.0.0
-  - grappa-ff
+  # Installing from git to get Python 3.11 compatibility, pending a new PyPI release.
+  - "git+https://github.com/ImeCMR/grappa-ff.git@5d39801"
