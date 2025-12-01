@@ -12,6 +12,7 @@ dependencies:
 - make
 - ccache
 - numpy=1.26
+#- numpy
 - mypy
 - breathe
 - doxygen 1.8.14
@@ -50,6 +51,6 @@ dependencies:
 # test
 - pytest
 
-- pip:
-  - torch==2.0.0
-  - grappa-ff
+- pip: []
+  #- torch==2.0.0
+  #- grappa-ff
